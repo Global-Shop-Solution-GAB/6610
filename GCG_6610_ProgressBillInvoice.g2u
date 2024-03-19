@@ -1,0 +1,268 @@
+﻿Program.Sub.Preflight.Start
+V.Global.sRptID.Declare(String,"")
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	
+	'check hook is 16090
+	F.Intrinsic.Control.If(V.Caller.Hook,=,16090)
+		'check for invoice report id
+	
+		F.Intrinsic.Control.If(V.Passed.009001,=,"000055","OR",V.Passed.009001,=,"000056",V.Passed.009001,=,"000057",V.Passed.009001,=,"000062",V.Passed.009001,=,"000065",V.Passed.009001,=,"000108",V.Passed.009001,=,"000109")
+			V.Global.sRptID.Set(V.Passed.009001)
+			'calling get data sub 
+			F.Intrinsic.Control.CallSub(Get_Data)
+			'insert sales order line for the progress bill line
+			F.Intrinsic.Control.CallSub(Parse_Data)
+			'calling sub to save data
+			F.Intrinsic.Control.CallSub(Save_Data)
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.EndIf
+	
+	'end program
+	F.Intrinsic.Control.CallSub(Exit)
+			
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_4989_Progress_Bill_Invoice.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(Exit)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.Exit.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	
+	'check if connection is open
+'	F.Intrinsic.Control.If(V.ODBC.Connection!Con.State,=,1)
+	F.Intrinsic.Control.If(v.ODBC!con.State, =, 1)
+	
+		F.ODBC.Connection!Con.Close
+	F.Intrinsic.Control.EndIf
+	'end program
+	F.Intrinsic.Control.End
+
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_4989_Progress_Bill_Invoice.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.End
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Exit.End
+
+Program.Sub.Get_Data.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	V.Local.sSql.Declare(String,"")
+
+	F.ODBC.Connection!Con.OpenCompanyConnection
+		
+	F.Intrinsic.String.Build("Select Terminal_No, RptID, Key_Sort, Invoice_No, Copy_No, Key_Seq, Form_Title, Invoice_Date, Order_No, Customer, Purchase_Order, Date_Order, Tax_Status, Cust_Job, Terms, Salesperson, Salesperson_Code, Date_Ship, Ship_Via, FOB, Flag_Insurance, BIIVC_Bill, Customer_Name, ","",V.Local.sSql)
+	F.Intrinsic.String.Build("{0}Address_1, Address_2, Address_3, Address_4, Address_5, City, State, Zip, Country, Attention_Title, Attention, Flag_Intl, Cust_Ship_Name, Ship_Address_1, Ship_Address_2, Ship_Address_3, Ship_Address_4, Ship_Address_5, Ship_City, Ship_State, Ship_Zip, Ship_Country, ",V.Local.sSql,V.Local.sSql)
+	F.Intrinsic.String.Build("{0}Ship_Attn_Title, Ship_Attention, Flag_Ship_Intl, Line_Item, Invoice_Type, Part, Location, Description, Price, Price_4, Price_5, Net_Amt, Weight, UM, Wgt_Amt, Qty_Order, Qty_Bo, Qty_Shipped, Qty_Order_2, Qty_Bo_2, Qty_Shipped_2, Qty_Order_4, Qty_Bo_4, Qty_Shipped_4, Filler4, ",V.Local.sSql,V.Local.sSql)
+	F.Intrinsic.String.Build("{0}Line_Type, Orig_Invoice, Branch, Area, Order_Sort, Customer_Sort, Date_Due, Um_Retained, Order_Suffix, Filler12, Contact, Contact_Phone, Contact_Email, Curr_Cd, Curr_Symbol, Order_Disc, Prccls_Disc, Prdln_Disc, Discount_Amt, Order_Disc_Amt, Prccls_Disc_Amt, Prdln_Disc_Amt, ",V.Local.sSql,V.Local.sSql)
+	F.Intrinsic.String.Build("{0}Tax_CD_1, Tax_CD_2, Tax_CD_3, Tax_CD_4, Tax_CD_5, Tax_CD_6, Tax_CD_7, Tax_CD_8, Tax_CD_9, Tax_CD_10, Tax_Desc_1, Tax_Desc_2, Tax_Desc_3, Tax_Desc_4, Tax_Desc_5, Tax_Desc_6, Tax_Desc_7, Tax_Desc_8, Tax_Desc_9, Tax_Desc_10, Tax_Rate_1, Tax_Rate_2, Tax_Rate_3, Tax_Rate_4, ",V.Local.sSql,V.Local.sSql)
+	F.Intrinsic.String.Build("{0}Tax_Rate_5, Tax_Rate_6, Tax_Rate_7, Tax_Rate_8, Tax_Rate_9, Tax_Rate_10,Tax_Amt_1 , Tax_Amt_2,Tax_Amt_3, Tax_Amt_4, Tax_Amt_5, Tax_Amt_6, Tax_Amt_7, ",V.Local.sSql,V.Local.sSql)
+	F.Intrinsic.String.Build("{0}Tax_Amt_8,Tax_Amt_9 , Tax_Amt_10, Total_Tax, Cmpny_Curr_Cd, Ord_Cmp_Exch, Filler29, Hdr_Usr_Lbl_1, Hdr_Usr_Lbl_2, Hdr_Usr_Lbl_3, Hdr_Usr_Lbl_4, Hdr_Usr_Lbl_5, Hdr_Usr_Fld_1, Hdr_Usr_Fld_2, Hdr_Usr_Fld_3, ",V.Local.sSql,V.Local.sSql)
+	F.Intrinsic.String.Build("{0}Hdr_Usr_Fld_4, Hdr_Usr_Fld_5, Ln_Usr_Lbl_1, Ln_Usr_Lbl_2, Ln_Usr_Lbl_3, Ln_Usr_Lbl_4, Ln_Usr_Lbl_5, Ln_Usr_Fld_1, Ln_Usr_Fld_2, Ln_Usr_Fld_3, Ln_Usr_Fld_4, Ln_Usr_Fld_5, Lump_Sum_Flag, Orig_Price, Orig_Price_4, Orig_Price_5, Disc_Price, Disc_Price_4, Disc_Price_5, Fill4_2, ",V.Local.sSql,V.Local.sSql)
+	F.Intrinsic.String.Build("{0}Copy_Title, Frm_Text_1, Frm_Text_2, Frm_Text_3, Frm_Text_4, Carrier_Cd, Tracking_No, Prod_Line, Cust_Part, Rec_Type, So_Num, So_Line, Po_Sort, Invoice_7, Discount, Total_Disc_Pct, Cost, Filler1 From Prt_Laser_Invoice Where Terminal_No = '{1}' and RptID = '{2}' Order By Key_Seq",V.Local.sSql,V.Caller.Terminal,V.Global.sRptID,V.Local.sSql)
+
+	F.Data.DataTable.CreateFromSQL("Invoice","con",V.Local.sSql,True)
+	
+	F.Intrinsic.String.Build("Select Terminal_NO, RptID, Invoice_No, Copy_No, Key_Seq, Comments From Comments_Ivc Where Terminal_No = '{1}' and RptID = '{2}' Order By Key_Seq",V.Local.sSql,V.Caller.Terminal,V.Global.sRptID,V.Local.sSql)
+	F.Data.DataTable.CreateFromSQL("Comments","con",v.Local.sSql,True)
+	
+	F.ODBC.Connection!Con.Close
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_4989_Progress_Bill_Invoice.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(Exit)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Get_Data.End
+
+Program.Sub.Save_Data.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	V.Local.sSql.Declare(String,"")
+	
+	F.ODBC.Connection!Con.OpenCompanyConnection
+	
+	'saving data
+	F.Intrinsic.Control.If(V.DataTable.InvoiceSave.RowCount--,<>,-1)
+		'Delete records for terminal and rptid from table before saving
+		F.Intrinsic.String.Build("Delete From Prt_Laser_Invoice Where Terminal_No = '{0}' and RptID = '{1}'",V.Caller.Terminal,V.Global.sRptID,V.Local.sSql)
+		
+		F.ODBC.Connection!Con.Execute(V.Local.sSql)
+		
+		'Delete records for terminal and rptid from table before saving
+		F.Intrinsic.String.Build("Delete From Comments_IVC Where Terminal_No = '{0}' and RptID = '{1}'",V.Caller.Terminal,V.Global.sRptID,V.Local.sSql)
+		
+		F.ODBC.Connection!Con.Execute(V.Local.sSql)
+		
+		'saving invoice datatable
+		F.Data.DataTable.SaveToDB("InvoiceSave","Con","Prt_Laser_Invoice","Terminal_No*!*RptID",128)
+		
+		F.Data.DataTable.SaveToDB("Comments","con","Comments_IVC","Terminal_No*!*RptID",128)
+		
+	F.Intrinsic.Control.EndIf
+	
+	F.Intrinsic.Control.If(V.DataTable.InvoiceSave.Exists)
+		F.Data.DataTable.Close("InvoiceSave")
+	F.Intrinsic.Control.EndIf
+	
+	F.ODBC.Connection!Con.Close
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_4989_Progress_Bill_Invoice.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(Exit)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Save_Data.End
+
+Program.Sub.Parse_Data.Start
+F.Intrinsic.Control.Try
+	V.Local.sError.Declare(String,"")
+	V.Local.sSql.Declare(String,"")
+	V.Local.i.Declare(Long,0)
+	V.Local.sKeySeq.Declare(String,"")
+	V.Local.sOrder.Declare(String,"")
+	V.Local.sLine.Declare(String,"")
+	V.Local.sRet.Declare(String,"")
+	V.Local.SRow.Declare(String,"")
+	V.Local.iCount.Declare(Long,0)
+	V.Local.sDesc.Declare(String,"")
+	V.Local.iD.Declare(Long,0)
+	V.Local.sLastLine.Declare(String,"")
+	V.Local.sTempLine.Declare(String,"")
+	V.Local.iP.Declare(Long,0)
+	V.Local.iSub.Declare(Long,0)
+	V.Local.iComments.Declare(Long,0)
+	V.Local.sFilter.Declare(String,"")
+	V.Local.iSize.Declare(Long,0)
+	
+	'create view of progress bill 
+	F.Data.DataView.Create("Invoice","VInvoice",22,"Invoice_Type = 'P'","Key_Seq")
+	
+	F.ODBC.Connection!Con.OpenCompanyConnection
+	
+	V.Local.sLastLine.Set("0000")
+	
+	'loop through view and insert previous sales order line
+	F.Intrinsic.Control.For(V.Local.i,0,V.DataView.Invoice!VInvoice.RowCount--,1)
+		F.Intrinsic.Math.Sub(V.DataView.Invoice!VInvoice(V.Local.i).Key_Seq!FieldValLong,.5,V.Local.sKeySeq)
+		F.Intrinsic.String.Replace(V.Local.sKeySeq,".","",V.Local.sKeySeq)
+		F.Intrinsic.String.LPad(V.Local.sKeySeq,"0",7,V.Local.sKeySeq)
+		F.Intrinsic.String.Split(V.DataView.Invoice!VInvoice(V.Local.i).Order_No!FieldValTrim,"-",V.Local.sOrder)
+		V.Local.sOrder.RedimPreserve(0,1)
+		V.Local.sLine.Set(V.DataView.Invoice!VInvoice(V.Local.i).Line_Item!FieldValTrim)
+		
+		F.Intrinsic.Control.If(V.Local.sLastLine,=,"0000")
+
+			F.Intrinsic.String.Build("Select Record_No From V_Order_Lines Where Line_Type = 'P' and Record_No < '{0}' and Order_No = '{1}' Order By Record_No",V.Local.sLine,V.Local.sOrder,V.Local.sSql)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSql,V.Local.sLastLine)
+			F.Intrinsic.Control.If(V.Local.sLastLine.Trim,=,"")
+				V.Local.sLastLine.Set("0000")
+			F.Intrinsic.Control.Else
+				F.Intrinsic.String.Split(V.Local.sLastLine,"#$#",V.Local.sLastLine)
+				F.Intrinsic.Control.If(V.Local.sLastLine.UBound,>,0)
+					F.Intrinsic.Control.For(V.Local.iP,1,V.Local.sLastLine.UBound,1)
+						F.Intrinsic.Math.Sub(V.Local.iP,1,V.Local.iSub)
+						F.Intrinsic.Math.Add(V.Local.sLastLine(V.Local.iSub).Long,10,V.Local.sTempLine)
+						F.Intrinsic.Control.If(V.Local.sTempLine.Long,<>,V.Local.sLastLine(V.Local.iP).Long)
+							V.Local.sLastLine.Set(V.Local.sLastLine(V.Local.iP))
+							F.Intrinsic.Control.ExitFor(V.Local.iP)
+						F.Intrinsic.Control.Else
+							V.Local.sLastLine.Set("0000")
+						F.Intrinsic.Control.EndIf
+					F.Intrinsic.Control.Next(V.Local.iP)
+				F.Intrinsic.Control.EndIf
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+		
+		F.Intrinsic.Control.If(V.Local.sLine.Long,>,V.Local.sLastLine.Long)
+			F.Intrinsic.String.Build("Select Order_No, Part, Description, Line_Type, Record_No, Price_Order, Qty_Ordered From V_Order_Lines Where Order_No = '{0}' and Line_Type <> 'P' and Record_No < '{1}' and Record_No > '{2}' Order by Record_No",V.Local.sOrder,V.Local.sLine,V.Local.sLastLine,V.Local.sSql)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSql,V.Local.sRet)
+			F.Intrinsic.Control.If(V.Local.sRet.Length,>,0)
+				F.Intrinsic.String.Split(V.Local.sRet,"#$#",V.Local.SRow)
+				F.Intrinsic.Control.For(V.Local.iCount,0,V.Local.SRow.UBound,1) 
+					F.Intrinsic.String.Split(V.Local.sRow(V.Local.iCount),"*!*",V.Local.sRet)
+					V.Local.sRet.RedimPreserve(0,6)
+					V.Local.sLastLine.Set(V.Local.sRet(4).Trim)
+					v.Local.sOrder.Set(V.Local.sRet(4).Left3)
+					F.Intrinsic.String.Format(V.Local.sOrder,"0000",V.Local.sOrder)
+					F.Intrinsic.String.Build("{0}-{1}",V.Local.sRet(0),V.Local.sOrder,V.Local.sRet(0))
+					F.Intrinsic.String.Format(V.Local.sRet(6),"0.00",V.Local.sRet(6))
+					F.Data.DataTable.AddRow("Invoice","Invoice_No",V.DataView.Invoice!VInvoice(V.Local.i).Invoice_No!FieldValTrim,"Key_Sort",V.DataView.Invoice!VInvoice(V.Local.i).Key_Sort!FieldValTrim,"Copy_No",V.DataView.Invoice!VInvoice(V.Local.i).Copy_No!FieldValTrim,"Key_Seq",V.Local.sKeySeq,"Order_No",V.DataView.Invoice!VInvoice(V.Local.i).Order_No!FieldValTrim,"Part",V.Local.sRet(1),"Description",V.Local.sRet(2),"Line_Type","L","Line_Item",V.Local.sRet(4),"Terminal_No",V.Caller.Terminal,"RptID",V.Global.sRptID,"Price",V.Local.sRet(5),"Invoice_Type",V.Local.sRet(3),"Qty_Order",V.Local.sRet(6))
+				F.Intrinsic.Control.Next(V.Local.iCount)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.i)
+	
+	F.Data.DataView.Close("Invoice","VInvoice")
+	F.Data.DataView.Create("Invoice","VInvoice",22,"","Key_Seq,Invoice_type Desc,Line_Item")
+	
+	F.Data.DataView.ToDataTable("Invoice","VInvoice","InvoiceSave",True)
+	
+	F.Data.DataView.Close("Invoice","VInvoice")
+	F.Data.DataTable.Close("Invoice")
+	
+	F.Data.DataTable.DeleteRow("Comments")
+	F.Data.DataTable.AcceptChanges("Comments")
+	
+	're-sequence key seq
+	V.Local.iCount.Set(-1)
+	V.Local.sKeySeq.Set("0")
+	V.Local.iSize.Set(V.DataTable.InvoiceSave.RowCount--)
+	F.Intrinsic.Control.For(V.Local.i,0,V.Local.iSize,1)
+		F.Intrinsic.Math.Add(V.Local.sKeySeq.Long,1,V.Local.sKeySeq)
+		F.Intrinsic.String.Format(V.Local.sKeySeq,"000000",V.Local.sKeySeq)
+		F.Intrinsic.Control.If(V.DataTable.InvoiceSave(V.Local.i).Part!FieldValTrim,=,"")
+			F.Data.DataTable.SetValue("InvoiceSave",V.Local.i,"Key_Seq",V.Local.sKeySeq,"Line_Item","","Invoice_Type","")
+		F.Intrinsic.Control.Else
+			F.Data.DataTable.SetValue("InvoiceSave",V.Local.i,"Key_Seq",V.Local.sKeySeq)
+			F.Intrinsic.String.Build("Select Text From V_Inv_Extra_Text Where Part = '{0}'",V.DataTable.InvoiceSave(V.Local.i).Part!FieldValTrim,V.Local.sSql)
+			F.ODBC.Connection!Con.ExecuteAndReturn(V.Local.sSql,V.Local.sDesc)
+			F.Intrinsic.Control.If(V.Local.sDesc.Length,>,0)
+				F.Intrinsic.Math.Add(V.Local.sKeySeq.Long,1,V.Local.sKeySeq)
+				F.Intrinsic.String.Format(V.Local.sKeySeq,"000000",V.Local.sKeySeq)
+				F.Data.DataTable.AddRow("InvoiceSave","Invoice_No",V.DataTable.InvoiceSave(V.Local.i).Invoice_No!FieldValTrim,"Key_Sort",V.DataTable.InvoiceSave(V.Local.i).Key_Sort!FieldValTrim,"Copy_No",V.DataTable.InvoiceSave(V.Local.i).Copy_No!FieldValTrim,"Key_Seq",V.Local.sKeySeq,"Order_No",V.DataTable.InvoiceSave(V.Local.i).Order_No!FieldValTrim,"Line_Type","CH","Terminal_No",V.Caller.Terminal,"RptID",V.Global.sRptID,"Price",V.Local.sRet(5),"Invoice_Type",V.Local.sRet(3),"Qty_Order",V.Local.sRet(6))
+				F.Data.DataTable.AddRow("Comments","Invoice_No",V.DataTable.InvoiceSave(V.Local.i).Invoice_No!FieldValTrim,"Copy_No",V.DataTable.InvoiceSave(V.Local.i).Copy_No!FieldValTrim,"Key_Seq",V.Local.sKeySeq.Trim,"Comments",V.Local.sDesc.Trim,"Terminal_No",V.Caller.Terminal,"RptID",V.Global.sRptID)
+			F.Intrinsic.Control.EndIf
+		F.Intrinsic.Control.EndIf
+	F.Intrinsic.Control.Next(V.Local.i)
+	
+	F.ODBC.Connection!Con.Close
+	
+	F.Intrinsic.Control.ExitSub
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.If(V.Ambient.ErrorNumber,<>,0)
+		F.Intrinsic.String.Build("Project: {0}{1}Subroutine: {2}{1}Error Occurred {3} with description {4}","GCG_4989_Progress_Bill_Invoice.g2u",V.Ambient.NewLine,V.Ambient.CurrentSubroutine,V.Ambient.ErrorNumber,V.Ambient.ErrorDescription,V.Local.sError)
+		F.Intrinsic.UI.Msgbox(V.Local.sError)
+		F.Intrinsic.Control.CallSub(Exit)
+	F.Intrinsic.Control.EndIf
+Function.Intrinsic.Control.EndTry
+Program.Sub.Parse_Data.End
+
+Program.Sub.Comments.Start
+${$5$}$2.0.0.0$}$2
+${$6$}$rnair$}$20220203082311919$}$JUGEdtlNdgRUPvge2DQ26cJ2Nib0UUk8Nh8yTRoHPJHBB5E0b+ucTDrLDokFYbE9h+4e5U/9BdY=
+Program.Sub.Comments.End
